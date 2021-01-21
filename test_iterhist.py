@@ -27,6 +27,8 @@ if __name__=='__main__':
     for d in data:
         ih(d) 
 
+    print(ih)
+
     figure(1)
     bar(*mpl_bar_args(ih))
     grid()

@@ -37,10 +37,10 @@ class IterHist:
 
     def __repr__(self):
         if len(self.bin_lists)==1:
-            return('\n'.join(['{}\t{}\t{}'.format(b.lo,b.hi,c) for b,c in zip(self.bin_lists[0],self.counts)]))
+            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(self.bin_lists[0],self.counts)]))
         else:
             h1 = project(self,(0,))
-            return('\n'.join(['{}\t{}\t{}'.format(b.lo,b.hi,c) for b,c in zip(h1.bin_lists[0],h1.counts)]))
+            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(h1.bin_lists[0],h1.counts)]))
 
 def project(ih,axes):
     ih_new = IterHist(
