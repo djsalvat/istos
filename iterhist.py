@@ -1,34 +1,58 @@
 from itertools import dropwhile
+from collections.abc import Iterable
 import numpy
 
-class _Bin:
+iterhist_rc = {
+                'ascii_width' : 40,
+              }
+
+class IterHistException(Exception):
+    pass
+
+class Bin:
     def __init__(self,lo,hi):
         self.__dict__.update({k:v for k,v in locals().items() if k!='self'})
     def __contains__(self,v):
         return self.lo <= v < self.hi
+    def __eq__(self,other):
+        return self.lo == other.lo and self.hi == other.hi
+
+class Axis:
+    def __init__(self,bins,label=''):
+        if any(
+                 [
+                     b1.lo>=b1.hi or b1.hi>b2.lo \
+                     for b1,b2 in zip(bins[:-1],bins[1:])
+                 ]
+                +[bins[-1].lo >= bins[-1].hi]
+              ):
+            raise IterHistException('bins must be ordered, non-empty, and non-overlapping')
+        self.__dict__.update({k:v for k,v in locals().items() if k!='self'})
+
+    def __contains__(self,v):
+        return self.bins[0].lo <= v < self.bins[-1].hi
+
+    def __eq__(self,other):
+        return all([s==o for s,o in zip(self.bins,other.bins)])
+
+    @staticmethod
+    def regular_bins(lo,hi,N,label=''):
+        width = (hi-lo)/float(N)
+        return Axis([Bin(lo+j*width,lo+(j+1)*width) for j in range(N)],label=label)
 
 class IterHist:
-    def __init__(self,bin_lists):
-        for bin_list in bin_lists:
-            #check adjacent bin edges
-            if any(
-                     [
-                         lo1>=hi1 or hi1>lo2 \
-                         for (lo1,hi1),(lo2,hi2) in zip(bin_list[:-1],bin_list[1:])
-                     ]
-                    +[bin_list[-1][0] >= bin_list[-1][1]]
-                  ):
-                raise Exception('bins must be ordered, non-empty, and non-overlapping')
-        self.bin_lists = tuple([_Bin(l,h) for l,h in bin_list] for bin_list in bin_lists)
-        self.counts = numpy.zeros(tuple(len(bin_list) for bin_list in self.bin_lists))
+    def __init__(self,axes):
+        self.axes = tuple(axes)
+        self.counts = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
+        self.dimension = len(self.axes)
 
     def __call__(self,val,weight=1.0):
         try:
             indices = tuple(
                           j for j,eb in \
                           [
-                              next(dropwhile(lambda b : v_ not in b[1],enumerate(bin_list))) \
-                              for v_,bin_list in zip(val,self.bin_lists)
+                              next(dropwhile(lambda b : v_ not in b[1],enumerate(axis.bins))) \
+                              for v_,axis in zip(val,self.axes)
                           ]
                       )
             self.counts[indices]+=weight 
@@ -36,42 +60,40 @@ class IterHist:
             pass
 
     def __repr__(self):
-        if len(self.bin_lists)==1:
-            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(self.bin_lists[0],self.counts)]))
+        print('{} lo\t{} hi\tcounts'.format(self.axes[0].label,self.axes[0].label))
+        if self.dimension==1:
+            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(self.axes[0].bins,self.counts)]))
         else:
-            h1 = project(self,(0,))
-            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(h1.bin_lists[0],h1.counts)]))
+            h1 = projected(self,(0,))
+            return('\n'.join(['{:.2f}\t{:.2f}\t{:.2f}'.format(b.lo,b.hi,c) for b,c in zip(h1.axes[0].bins,h1.counts)]))
 
-def project(ih,axes):
-    ih_new = IterHist(
-                      tuple(
-                        [(b.lo,b.hi) for b in bl] \
-                        for j,bl in enumerate(ih.bin_lists) \
-                        if j in axes
-                      )
-                     )
-    sum_axes = tuple(set(range(len(ih.bin_lists))) - set(axes))
+def projected(ih,axes):
+    ih_new = IterHist(a for j,a in enumerate(ih.axes) if j in axes)
+    sum_axes = tuple(set(range(ih.dimension)) - set(axes))
     ih_new.counts += numpy.sum(ih.counts,axis=sum_axes)
     return ih_new
 
-def regular_bins(lo,hi,N):
-    width = (hi-lo)/float(N)
-    return [(lo+j*width,lo+(j+1)*width) for j in range(N)]
-
 def mpl_bar_args(h):
-    if len(h.bin_lists)!=1:
-        h = project(h,(0,))
-    x = [0.5*(b.lo+b.hi) for b in h.bin_lists[0]]
+    if h.dimension!=1:
+        h = projected(h,(0,))
+    x = [0.5*(b.lo+b.hi) for b in h.axes[0].bins]
     y = h.counts
-    w = [b.hi-b.lo for b in h.bin_lists[0]]
+    w = [b.hi-b.lo for b in h.axes[0].bins]
     return x,y,w
 
 def mpl_contour_args(h):
-    if len(h.bin_lists)<2:
-        raise Exception('Histogram must be at least two-dimensional')
-    if len(h.bin_lists)>2:
-        h = project(h,(0,1))
-    x = [0.5*(b.lo+b.hi) for b in h.bin_lists[0]]
-    y = [0.5*(b.lo+b.hi) for b in h.bin_lists[1]]
+    if h.dimension<2:
+        raise IterHistException('Histogram must be at least two-dimensional')
+    elif h.dimension>2:
+        h = projected(h,(0,1))
+    x = [0.5*(b.lo+b.hi) for b in h.axes[0].bins]
+    y = [0.5*(b.lo+b.hi) for b in h.axes[1].bins]
     z = h.counts.transpose()
     return x,y,z
+
+def to_ascii(h):
+    if h.dimension!=1:
+        h = projected(h,(0,))
+    max_val = max(h.counts)
+    return('\n'.join(['\t{:+.2f}\t{:+.2f}\t{}'.format(b.lo,b.hi,'#'*(int(c*iterhist_rc['ascii_width']/max_val))) \
+            for b,c in zip(h.axes[0].bins,h.counts)]))
