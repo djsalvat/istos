@@ -2,14 +2,18 @@ from itertools import dropwhile
 from collections.abc import Iterable
 import numpy
 
+#For customization
 iterhist_rc = {
                 'ascii_width' : 40,
               }
 
 class IterHistException(Exception):
+    '''Generic module exception class.'''
     pass
 
 class Bin:
+    '''A bin has a lower and upper edge, and a notion of whether a value
+    is within the (lower,upper) interval.'''
     def __init__(self,lo,hi):
         self.__dict__.update({k:v for k,v in locals().items() if k!='self'})
     def __contains__(self,v):
@@ -18,6 +22,9 @@ class Bin:
         return self.lo == other.lo and self.hi == other.hi
 
 class Axis:
+    '''Axes have a list of Bin objects and an optional label.
+    Axes can be regrouped, as long as the number of bins is divisible by regrouping size.
+    This regrouping is used by the IterHist rebinned routine.'''
     def __init__(self,bins,label=''):
         if any(
                  [
@@ -37,11 +44,13 @@ class Axis:
 
     @staticmethod
     def regular_bins(lo,hi,N,label=''):
+        '''Returns an axis with N evenly spaced bins over the given range.'''
         width = (hi-lo)/float(N)
         return Axis([Bin(lo+j*width,lo+(j+1)*width) for j in range(N)],label=label)
 
     @staticmethod
     def regrouped(axis,grouping):
+        '''Returns an axis with "grouping" number of bins combined. Used by IterHist.rebinned.'''
         if len(axis.bins)%grouping != 0:
             raise IterHistException('Number of axis bins must be divisible by grouping')
         return Axis([Bin(b1.lo,b2.hi) \
@@ -49,6 +58,9 @@ class Axis:
                label=axis.label)
 
 class IterHist:
+    '''An IterHist is a tuple of axes, and a numpy array with shape
+    (B1,B2,...) where B1 is the number of bins in the first axis,
+    B2 in the second axis, and so on.'''
     def __init__(self,axes):
         self.axes = tuple(axes)
         self.counts = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
@@ -102,12 +114,14 @@ class IterHist:
         return h_new
 
 def projected(ih,axes):
+    '''Sum over the tuple of axes provided, reducing the dimension of the histogram.'''
     ih_new = IterHist(a for j,a in enumerate(ih.axes) if j in axes)
     sum_axes = tuple(set(range(ih.dimension)) - set(axes))
     ih_new.counts += numpy.sum(ih.counts,axis=sum_axes)
     return ih_new
 
 def rebinned(ih,grouping,axis=0):
+    '''Rebin histogram by combining "grouping" number of bins along the given axis.'''
     new_axes = list(ih.axes)
     new_axes[axis] = Axis.regrouped(ih.axes[axis],grouping)
     ih_new = IterHist(new_axes)
@@ -122,6 +136,8 @@ def rebinned(ih,grouping,axis=0):
     return ih_new
 
 def mpl_bar_args(h):
+    '''Return abcissa and ordinate values, along with bin widths,
+    required by matplotlib's bar() plotting function.'''
     if h.dimension!=1:
         h = projected(h,(0,))
     x = [0.5*(b.lo+b.hi) for b in h.axes[0].bins]
@@ -130,6 +146,8 @@ def mpl_bar_args(h):
     return x,y,w
 
 def mpl_contour_args(h):
+    '''Return abcissa, ordinate, and number of counts
+    required by matplotlib's contour() and contourf() plotting functiosn.'''
     if h.dimension<2:
         raise IterHistException('Histogram must be at least two-dimensional')
     elif h.dimension>2:
@@ -140,6 +158,7 @@ def mpl_contour_args(h):
     return x,y,z
 
 def to_ascii(h):
+    '''Print a bar chart in ascii.'''
     if h.dimension!=1:
         h = projected(h,(0,))
     max_val = max(h.counts)
