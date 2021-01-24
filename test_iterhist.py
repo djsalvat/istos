@@ -55,7 +55,6 @@ if __name__=='__main__':
     figure(3)
     contourf(*mpl_contour_args(ih))
     grid()
-    show()
 
     figure(4)
     contourf(*mpl_contour_args(rebinned(ih,5,axis=1)))
