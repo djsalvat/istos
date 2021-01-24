@@ -146,7 +146,7 @@ def mpl_bar_args(h):
 
 def mpl_contour_args(h):
     '''Return abcissa, ordinate, and number of counts
-    required by matplotlib's contour() and contourf() plotting functiosn.'''
+    required by matplotlib's contour() and contourf() plotting functions.'''
     if h.dimension<2:
         raise IterHistException('Histogram must be at least two-dimensional')
     elif h.dimension>2:
@@ -163,3 +163,22 @@ def to_ascii(h):
     max_val = max(h.counts)
     return('\n'.join(['\t{:+.2f}\t{:+.2f}\t{}'.format(b.lo,b.hi,'#'*(int(c*iterhist_rc['ascii_width']/max_val))) \
             for b,c in zip(h.axes[0].bins,h.counts)]))
+
+if __name__=='__main__':
+    import argparse
+    import sys
+    mainparser = argparse.ArgumentParser(prog='iterhist',description='A pythonic histogram object.')
+    mainparser.add_argument('--version', action='version', version='The current version is 0.1.')
+    mainparser.add_argument('lo',type=float,nargs=1,help='lower histogram boundary')
+    mainparser.add_argument('hi',type=float,nargs=1,help='upper histogram boundary')
+    mainparser.add_argument('N',type=int,nargs=1,help='number of bins')
+    mainparser.add_argument('infile',type=argparse.FileType('r'),nargs='?',default=sys.stdin,help='number of bins')
+    args = mainparser.parse_args()
+    LO = args.lo[0]
+    HI = args.hi[0]
+    N = args.N[0]
+
+    ih = IterHist((Axis.regular_bins(LO,HI,N),))
+    for l in args.infile.readlines():
+        ih((float(l.strip()),))
+    print(to_ascii(ih))
