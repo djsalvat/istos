@@ -1,6 +1,7 @@
 from iterhist import * 
 from numpy import diag,sqrt
 from numpy.random import multivariate_normal
+from itertools import count
 from matplotlib.pylab import figure,bar,contourf,grid,xlabel,ylabel,show
 from matplotlib import use
 use('TkAgg')
@@ -23,9 +24,16 @@ if __name__=='__main__':
                     for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
                  )
 
+    ih_other = IterHist(
+                         Axis.regular_bins(m-sqrt(s)*3.0,m+sqrt(s)*3.0,b,label=l) \
+                         for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
+                       )
+
 
     for d in data:
         ih(d) 
+
+    ih_other.counts += ih.counts
 
     print(ih)
 
@@ -44,19 +52,29 @@ if __name__=='__main__':
     except IterHistException as e:
         print(e)
 
-    figure(1)
+    fig_count = count()
+
+    figure(next(fig_count))
     bar(*mpl_bar_args(ih))
     grid()
 
-    figure(2)
+    figure(next(fig_count))
     bar(*mpl_bar_args(rebinned(ih,3)))
     grid()
 
-    figure(3)
+    figure(next(fig_count))
+    bar(*mpl_bar_args(ih-ih_other))
+    grid()
+
+    figure(next(fig_count))
+    bar(*mpl_bar_args((ih*0.01)/5.0))
+    grid()
+
+    figure(next(fig_count))
     contourf(*mpl_contour_args(ih))
     grid()
 
-    figure(4)
+    figure(next(fig_count))
     contourf(*mpl_contour_args(rebinned(ih,5,axis=1)))
     grid()
     show()

@@ -77,6 +77,30 @@ class IterHist:
             return('\n'.join(['{:+.2f}\t{:+.2f}\t{:+.2f}'.format(b.lo,b.hi,c) \
                    for b,c in zip(h1.axes[0].bins,h1.counts)]))
 
+    def __add__(self,other):
+        if not all([a1==a2 for a1,a2 in zip(self.axes,other.axes)]):
+            raise IterHistException('cannot add histograms with unequal axes')
+        h_new = IterHist(self.axes)
+        h_new.counts = self.counts + other.counts
+        return h_new
+
+    def __sub__(self,other):
+        if not all([a1==a2 for a1,a2 in zip(self.axes,other.axes)]):
+            raise IterHistException('cannot add histograms with unequal axes')
+        h_new = IterHist(self.axes)
+        h_new.counts = self.counts - other.counts
+        return h_new
+
+    def __mul__(self,c):
+        h_new = IterHist(self.axes)
+        h_new.counts = self.counts*c
+        return h_new
+
+    def __truediv__(self,c):
+        h_new = IterHist(self.axes)
+        h_new.counts = self.counts/c
+        return h_new
+
 def projected(ih,axes):
     ih_new = IterHist(a for j,a in enumerate(ih.axes) if j in axes)
     sum_axes = tuple(set(range(ih.dimension)) - set(axes))
