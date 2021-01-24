@@ -1,4 +1,4 @@
-# iterhist
+# IterHist
 
 IterHist provides a histogram object with some of the
 functionality of `ROOT`'s `TH*` objects. An IterHist instance
