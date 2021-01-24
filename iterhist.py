@@ -1,5 +1,4 @@
 from itertools import dropwhile
-from collections.abc import Iterable
 import numpy
 
 #For customization
