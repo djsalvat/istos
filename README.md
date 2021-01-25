@@ -21,12 +21,12 @@ order, non-empty, and non-overlapping.
 As an example, we can define a one-dimensional histogram
 with four arbitrary bins:
 ```python
-import IterHist as IH
+import iterhist as IH
 from itertools import repeat
 lo_edges = [0.0,1.5,3.5,10.0]
 hi_edges = [1.5,3.5,10.0,30.0]
 
-ih = IH.IterHist((Axis([Bin(l,h) for l,h in zip(lo_edges,hi_edges)],\
+ih = IH.IterHist((IH.Axis([IH.Bin(l,h) for l,h in zip(lo_edges,hi_edges)],\
      label='example axis'),))
 ```
 
@@ -34,14 +34,14 @@ In this example, the bins are adjacent (a bin's high edge corresponds
 to the next's low edge), but this not need be the case.
 We can generate evenly-spaced bins via
 ```python
-ih_even = IH.IterHist((Axis.regular_bins(0.0,10.0,5,label='five evenly-spaced bins'),))
+ih_even = IH.IterHist((IH.Axis.regular_bins(0.0,10.0,5,label='five evenly-spaced bins'),))
 ```
 
 If we define a multi-dimensional histogram, we can project axes to generate
 lower dimensional histograms
 ```python
-my_axes = repeat(Axis.regular_bins(-1.0,1.0,10),3)
+my_axes = repeat(IH.Axis.regular_bins(-1.0,1.0,10),3)
 ih3 = IH.IterHist(my_axes)
 #project to 1-D histogram about the second axis (viz. axis 1)
-ih_proj = projected(ih3,(1,))
+ih_proj = IH.projected(ih3,(1,))
 ```
