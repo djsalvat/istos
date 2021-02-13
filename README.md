@@ -3,7 +3,7 @@
 IterHist provides a histogram object with some of the
 functionality of `ROOT`'s `TH*` objects. An IterHist instance
 is a callable object, providing effectively the behavior of
-ROOT histogram's `->Fill()` method.
+the `TH*->Fill()` method.
 
 IterHists can be of arbitrary dimension `N`. Counts are stored
 in an `N`-dimensional numpy array. IterHist provides basic
