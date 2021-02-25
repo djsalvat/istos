@@ -65,6 +65,20 @@ class IterHist:
         self.counts = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
         self.dimension = len(self.axes)
 
+    @staticmethod
+    def histogramdd(A,axes,**kwargs):
+        if A.shape[1] != len(axes):
+            raise IterHistException('number of axes must match input data dimension') 
+        freq, edges = numpy.histogramdd(
+                                        A,
+                                        bins=tuple(len(axis.bins) for axis in axes),
+                                        range=[(axis.bins[0].lo,axis.bins[-1].hi) for axis in axes],
+                                        **kwargs
+                                       )
+        H = IterHist(axes)
+        H.counts = freq
+        return H
+
     def __call__(self,val,weight=1.0):
         try:
             indices = tuple(
