@@ -6,6 +6,8 @@ iterhist_rc = {
                 'ascii_width' : 40,
               }
 
+errors_options = [None,'poisson','added','subtracted','scaled']
+
 class IterHistException(Exception):
     '''Generic module exception class.'''
     pass
@@ -60,13 +62,26 @@ class IterHist:
     '''An IterHist is a tuple of axes, and a numpy array with shape
     (B1,B2,...) where B1 is the number of bins in the first axis,
     B2 in the second axis, and so on.'''
-    def __init__(self,axes):
+    def __init__(self,axes,error_type=None):
         self.axes = tuple(axes)
         self.counts = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
         self.dimension = len(self.axes)
+        if error_type not in errors_options:
+            raise IterHistException('Error type must be one of {}'.format(errors_options))
+        self.error_type = error_type
+        if error_type=='poisson':
+            self.errors = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
+
+    def set_counts(self,A):
+        self.counts = A
+        if self.error_type=='poisson':
+            self.errors = numpy.sqrt(A)
+
+    def set_errors(self,E):
+        self.errors = E
 
     @staticmethod
-    def histogramdd(A,axes,**kwargs):
+    def histogramdd(A,axes,error_type=None,**kwargs):
         if A.shape[1] != len(axes):
             raise IterHistException('number of axes must match input data dimension') 
         freq, edges = numpy.histogramdd(
@@ -75,8 +90,9 @@ class IterHist:
                                         range=[(axis.bins[0].lo,axis.bins[-1].hi) for axis in axes],
                                         **kwargs
                                        )
-        H = IterHist(axes)
-        H.counts = freq
+        H = IterHist(axes,error_type=error_type)
+        H.set_counts(freq)
+
         return H
 
     def __call__(self,val,weight=1.0):
@@ -107,6 +123,9 @@ class IterHist:
             raise IterHistException('cannot add histograms with unequal axes')
         h_new = IterHist(self.axes)
         h_new.counts = self.counts + other.counts
+        if self.error_type!=None and other.error_type!=None:
+            h_new.errors = numpy.sqrt(self.errors**2.0+other.errors**2.0)
+            h_new.error_type = 'added'
         return h_new
 
     def __sub__(self,other):
@@ -114,16 +133,25 @@ class IterHist:
             raise IterHistException('cannot add histograms with unequal axes')
         h_new = IterHist(self.axes)
         h_new.counts = self.counts - other.counts
+        if self.error_type!=None and other.error_type!=None:
+            h_new.errors = numpy.sqrt(self.errors**2.0+other.errors**2.0)
+            h_new.error_type = 'subtracted'
         return h_new
 
     def __mul__(self,c):
         h_new = IterHist(self.axes)
         h_new.counts = self.counts*c
+        if self.error_type!=None:
+            h_new.errors = self.errors*c
+            h_new.error_type = 'scaled'
         return h_new
 
     def __truediv__(self,c):
         h_new = IterHist(self.axes)
         h_new.counts = self.counts/c
+        if self.error_type!=None:
+            h_new.errors = self.errors/c
+            h_new.error_type = 'scaled'
         return h_new
 
 def projected(ih,axes):
@@ -131,6 +159,8 @@ def projected(ih,axes):
     ih_new = IterHist(a for j,a in enumerate(ih.axes) if j in axes)
     sum_axes = tuple(set(range(ih.dimension)) - set(axes))
     ih_new.counts += numpy.sum(ih.counts,axis=sum_axes)
+    if ih.error_type!=None:
+        ih_new.errors = numpy.sqrt(numpy.sum(ih.errors**2.0,axis=sum_axes))
     return ih_new
 
 def rebinned(ih,grouping,axis=0):
@@ -157,6 +187,18 @@ def mpl_bar_args(h):
     y = h.counts
     w = [b.hi-b.lo for b in h.axes[0].bins]
     return x,y,w
+
+def mpl_errorbar_args(h):
+    '''Return abcissa and ordinate values,
+    along with bin widths and errors,
+    required by matplotlib's errorbar() plotting function.'''
+    if h.dimension!=1:
+        h = projected(h,(0,))
+    x = [0.5*(b.lo+b.hi) for b in h.axes[0].bins]
+    y = h.counts
+    w = [(b.hi-b.lo)*0.5 for b in h.axes[0].bins]
+    s = h.errors
+    return x,y,s,w
 
 def mpl_contour_args(h):
     '''Return abcissa, ordinate, and number of counts
