@@ -1,5 +1,7 @@
 # IterHist
 
+## Introduction
+
 IterHist provides a histogram object with some of the
 functionality of `ROOT`'s `TH*` objects. An IterHist instance
 is a callable object, providing effectively the behavior of
@@ -10,7 +12,7 @@ in an `N`-dimensional numpy array. IterHist provides basic
 arithmetic operator overloading, utilities to generate
 axes, and projection and rebinning utilities similar to `ROOT`.
 Further, it provides utilities to generate arguments needed
-by matplotlib's `bar()` and `contour()` functions for plotting.
+by matplotlib's `bar()`, `errorbar()`, and `contour()` functions for plotting.
 
 An IterHist object consists of an immutable set of `N` `Axis`
 objects. Each `Axis` consists of a collection of `Bin` objects
@@ -45,3 +47,27 @@ ih3 = IH.IterHist(my_axes)
 #project to 1-D histogram about the second axis (viz. axis 1)
 ih_proj = IH.projected(ih3,(1,))
 ```
+
+## Plotting
+
+The module provides a few functions which return the data from an `iterhist` object
+in the proper format for some of `matplotlib.pyplot`'s functions.
+For example, we can plot a 2-D histogram using `contour()` or `pcolor()`:
+```python
+from matplotlib.pyplot import figure,pcolor,show
+figure()
+pcolor(*IH.mpl_contour_args(h2))
+show()
+```
+There are similar functions for use with `bar()` and `errorbar()`.
+
+## Errors
+
+An `IterHist` object contains an optional `errors` data member,
+which is a bin-by-bin uncertainty also stored as a `numpy` array.
+These uncertainties are scaled and propagated appropriately
+when an `IterHist` object's overloaded arithmetic operators are employed.
+The functionality is limited, and for now only handles root-N
+Poisson-like statistical uncertainties for each bin.
+This behavior can be overridden by accessing an `IterHist` object's
+`counts` and `errors` members directly.
