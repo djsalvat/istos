@@ -82,6 +82,9 @@ class IterHist:
 
     @staticmethod
     def histogramdd(A,axes,error_type=None,**kwargs):
+        '''Instead of calling the IterHist object to fill the histogram,
+        provide an array of all of the values to be inserted
+        and use numpy.histogramdd to fill the bins.'''
         if A.shape[1] != len(axes):
             raise IterHistException('number of axes must match input data dimension') 
         freq, edges = numpy.histogramdd(
