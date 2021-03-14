@@ -20,12 +20,12 @@ if __name__=='__main__':
     data = multivariate_normal(mu,sigma,10000)
 
     #make a histogram to bin the data
-    ih = Istos(
+    ih = Histogram(
                     Axis.regular_bins(m-sqrt(s)*3.0,m+sqrt(s)*3.0,b,label=l) \
                     for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
                  )
     #make another histogram to demonstrate histogram arithmetic operations
-    ih_other = Istos(
+    ih_other = Histogram(
                          Axis.regular_bins(m-sqrt(s)*3.0,m+sqrt(s)*3.0,b,label=l) \
                          for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
                        )
@@ -35,7 +35,7 @@ if __name__=='__main__':
         ih(d) 
     #set the bin content of the other histogram
     ih_other.counts += ih.counts
-    #Istos's __repr__() in action
+    #Histogram's __repr__() in action
     print(ih)
     #ascii bar chart representation
     print(to_ascii(ih))
