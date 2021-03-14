@@ -8,7 +8,7 @@ iterhist_rc = {
 
 errors_options = [None,'poisson','added','subtracted','scaled']
 
-class IterHistException(Exception):
+class IstosException(Exception):
     '''Generic module exception class.'''
     pass
 
@@ -25,7 +25,7 @@ class Bin:
 class Axis:
     '''Axes have a list of Bin objects and an optional label.
     Axes can be regrouped, as long as the number of bins is divisible by regrouping size.
-    This regrouping is used by the IterHist rebinned routine.'''
+    This regrouping is used by the Istos rebinned routine.'''
     def __init__(self,bins,label=''):
         if any(
                  [
@@ -34,7 +34,7 @@ class Axis:
                  ]
                 +[bins[-1].lo >= bins[-1].hi]
               ):
-            raise IterHistException('bins must be ordered, non-empty, and non-overlapping')
+            raise IstosException('bins must be ordered, non-empty, and non-overlapping')
         self.__dict__.update({k:v for k,v in locals().items() if k!='self'})
 
     def __contains__(self,v):
@@ -51,15 +51,15 @@ class Axis:
 
     @staticmethod
     def regrouped(axis,grouping):
-        '''Returns an axis with "grouping" number of bins combined. Used by IterHist.rebinned.'''
+        '''Returns an axis with "grouping" number of bins combined. Used by Istos.rebinned.'''
         if len(axis.bins)%grouping != 0:
-            raise IterHistException('Number of axis bins must be divisible by grouping')
+            raise IstosException('Number of axis bins must be divisible by grouping')
         return Axis([Bin(b1.lo,b2.hi) \
                for b1,b2 in zip(axis.bins[::grouping],axis.bins[grouping-1::grouping])],
                label=axis.label)
 
-class IterHist:
-    '''An IterHist is a tuple of axes, and a numpy array with shape
+class Istos:
+    '''An Istos is a tuple of axes, and a numpy array with shape
     (B1,B2,...) where B1 is the number of bins in the first axis,
     B2 in the second axis, and so on.'''
     def __init__(self,axes,error_type=None):
@@ -67,7 +67,7 @@ class IterHist:
         self.counts = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
         self.dimension = len(self.axes)
         if error_type not in errors_options:
-            raise IterHistException('Error type must be one of {}'.format(errors_options))
+            raise IstosException('Error type must be one of {}'.format(errors_options))
         self.error_type = error_type
         if error_type=='poisson':
             self.errors = numpy.zeros(tuple(len(axis.bins) for axis in self.axes))
@@ -82,18 +82,18 @@ class IterHist:
 
     @staticmethod
     def histogramdd(A,axes,error_type=None,**kwargs):
-        '''Instead of calling the IterHist object to fill the histogram,
+        '''Instead of calling the Istos object to fill the histogram,
         provide an array of all of the values to be inserted
         and use numpy.histogramdd to fill the bins.'''
         if A.shape[1] != len(axes):
-            raise IterHistException('number of axes must match input data dimension') 
+            raise IstosException('number of axes must match input data dimension') 
         freq, edges = numpy.histogramdd(
                                         A,
                                         bins=tuple(len(axis.bins) for axis in axes),
                                         range=[(axis.bins[0].lo,axis.bins[-1].hi) for axis in axes],
                                         **kwargs
                                        )
-        H = IterHist(axes,error_type=error_type)
+        H = Istos(axes,error_type=error_type)
         H.set_counts(freq)
 
         return H
@@ -123,8 +123,8 @@ class IterHist:
 
     def __add__(self,other):
         if not all([a1==a2 for a1,a2 in zip(self.axes,other.axes)]):
-            raise IterHistException('cannot add histograms with unequal axes')
-        h_new = IterHist(self.axes)
+            raise IstosException('cannot add histograms with unequal axes')
+        h_new = Istos(self.axes)
         h_new.counts = self.counts + other.counts
         if self.error_type!=None and other.error_type!=None:
             h_new.errors = numpy.sqrt(self.errors**2.0+other.errors**2.0)
@@ -133,8 +133,8 @@ class IterHist:
 
     def __sub__(self,other):
         if not all([a1==a2 for a1,a2 in zip(self.axes,other.axes)]):
-            raise IterHistException('cannot add histograms with unequal axes')
-        h_new = IterHist(self.axes)
+            raise IstosException('cannot add histograms with unequal axes')
+        h_new = Istos(self.axes)
         h_new.counts = self.counts - other.counts
         if self.error_type!=None and other.error_type!=None:
             h_new.errors = numpy.sqrt(self.errors**2.0+other.errors**2.0)
@@ -142,7 +142,7 @@ class IterHist:
         return h_new
 
     def __mul__(self,c):
-        h_new = IterHist(self.axes)
+        h_new = Istos(self.axes)
         h_new.counts = self.counts*c
         if self.error_type!=None:
             h_new.errors = self.errors*c
@@ -150,7 +150,7 @@ class IterHist:
         return h_new
 
     def __truediv__(self,c):
-        h_new = IterHist(self.axes)
+        h_new = Istos(self.axes)
         h_new.counts = self.counts/c
         if self.error_type!=None:
             h_new.errors = self.errors/c
@@ -159,7 +159,7 @@ class IterHist:
 
 def projected(ih,axes):
     '''Sum over the tuple of axes provided, reducing the dimension of the histogram.'''
-    ih_new = IterHist(a for j,a in enumerate(ih.axes) if j in axes)
+    ih_new = Istos(a for j,a in enumerate(ih.axes) if j in axes)
     sum_axes = tuple(set(range(ih.dimension)) - set(axes))
     ih_new.counts += numpy.sum(ih.counts,axis=sum_axes)
     if ih.error_type!=None:
@@ -170,7 +170,7 @@ def rebinned(ih,grouping,axis=0):
     '''Rebin histogram by combining "grouping" number of bins along the given axis.'''
     new_axes = list(ih.axes)
     new_axes[axis] = Axis.regrouped(ih.axes[axis],grouping)
-    ih_new = IterHist(new_axes)
+    ih_new = Istos(new_axes)
     for k in range(len(new_axes[axis].bins)):
         c_slice = ih.counts[
                             tuple(
@@ -207,7 +207,7 @@ def mpl_contour_args(h):
     '''Return abcissa, ordinate, and number of counts
     required by matplotlib's contour() and contourf() plotting functions.'''
     if h.dimension<2:
-        raise IterHistException('Histogram must be at least two-dimensional')
+        raise IstosException('Histogram must be at least two-dimensional')
     elif h.dimension>2:
         h = projected(h,(0,1))
     x = [0.5*(b.lo+b.hi) for b in h.axes[0].bins]
@@ -237,7 +237,7 @@ if __name__=='__main__':
     HI = args.hi[0]
     N = args.N[0]
 
-    ih = IterHist((Axis.regular_bins(LO,HI,N),))
+    ih = Istos((Axis.regular_bins(LO,HI,N),))
     for l in args.infile.readlines():
         ih((float(l.strip()),))
     print(to_ascii(ih))

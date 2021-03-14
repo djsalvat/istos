@@ -1,4 +1,4 @@
-from iterhist import * 
+from istos import * 
 from numpy import diag,sqrt
 from numpy.random import multivariate_normal
 from itertools import count
@@ -20,12 +20,12 @@ if __name__=='__main__':
     data = multivariate_normal(mu,sigma,10000)
 
     #make a histogram to bin the data
-    ih = IterHist(
+    ih = Istos(
                     Axis.regular_bins(m-sqrt(s)*3.0,m+sqrt(s)*3.0,b,label=l) \
                     for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
                  )
     #make another histogram to demonstrate histogram arithmetic operations
-    ih_other = IterHist(
+    ih_other = Istos(
                          Axis.regular_bins(m-sqrt(s)*3.0,m+sqrt(s)*3.0,b,label=l) \
                          for (m,s,b,l) in zip(mu,diag(sigma),bins,labels) \
                        )
@@ -35,7 +35,7 @@ if __name__=='__main__':
         ih(d) 
     #set the bin content of the other histogram
     ih_other.counts += ih.counts
-    #IterHist's __repr__() in action
+    #Istos's __repr__() in action
     print(ih)
     #ascii bar chart representation
     print(to_ascii(ih))
@@ -51,7 +51,7 @@ if __name__=='__main__':
     print(a_.label)
     try:
         a_ = Axis.regrouped(a,5)
-    except IterHistException as e:
+    except IstosException as e:
         print(e)
 
     #counter to keep track of figures
