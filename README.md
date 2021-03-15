@@ -28,8 +28,21 @@ from itertools import repeat
 lo_edges = [0.0,1.5,3.5,10.0]
 hi_edges = [1.5,3.5,10.0,30.0]
 
-hi = IS.Histogram((IS.Axis([IS.Bin(l,h) for l,h in zip(lo_edges,hi_edges)],\
-     label='example axis'),))
+my_axes = (IS.Axis([IS.Bin(l,h) for l,h in zip(lo_edges,hi_edges)],\
+           label='example axis'),)
+
+hi = IS.Histogram(my_axes)
+```
+
+To fill the histogram, you can do so in a loop
+```python
+for d in data:
+    hi(d)
+```
+Or you can leverage `numpy.histogramdd` via the similarly named `Histogram.histogramdd`
+static method for increased performance
+```python
+hi = IS.Histogram.histogramdd(data,my_axes)
 ```
 
 In this example, the bins are adjacent (a bin's high edge corresponds
