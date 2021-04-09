@@ -23,7 +23,7 @@ order, non-empty, and non-overlapping.
 As an example, we can define a one-dimensional histogram
 with four arbitrary bins:
 ```python
-import iterhist as IS
+import istos as IS
 from itertools import repeat
 lo_edges = [0.0,1.5,3.5,10.0]
 hi_edges = [1.5,3.5,10.0,30.0]
@@ -63,7 +63,7 @@ hi_proj = IS.projected(hi3,(1,))
 
 ## Plotting
 
-The module provides a few functions which return the data from an `iterhist` object
+The module provides a few functions which return the data from a `Histogram` object
 in the proper format for some of `matplotlib.pyplot`'s functions.
 For example, we can plot a 2-D histogram using `contour()` or `pcolor()`:
 ```python
