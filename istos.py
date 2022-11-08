@@ -231,7 +231,7 @@ if __name__=='__main__':
     mainparser.add_argument('lo',type=float,nargs=1,help='lower histogram boundary')
     mainparser.add_argument('hi',type=float,nargs=1,help='upper histogram boundary')
     mainparser.add_argument('N',type=int,nargs=1,help='number of bins')
-    mainparser.add_argument('infile',type=argparse.FileType('r'),nargs='?',default=sys.stdin,help='number of bins')
+    mainparser.add_argument('infile',type=argparse.FileType('r'),nargs='?',default=sys.stdin,help='input file (defaults to stdin)')
     args = mainparser.parse_args()
     LO = args.lo[0]
     HI = args.hi[0]
